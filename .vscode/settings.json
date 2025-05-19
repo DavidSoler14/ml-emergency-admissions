@@ -1,0 +1,6 @@
+{
+    "editor.defaultFormatter": null,
+    "python.analysis.extraPaths": [
+        "./notebooks/utils"
+    ]
+}
