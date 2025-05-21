@@ -2,9 +2,48 @@ import pandas as pd
 import glob
 import os
 
-def read_raw_data(format: str, file_path: str, options: dict) -> pd.DataFrame:
+def read_raw_data(format: str, file_path: str, options: dict, large_file: bool) -> pd.DataFrame:
     """
     Lee datos dado una ruta de archivo y un formato
+
+    Parameters:
+    - format (str): formato del archivo.
+    - file_path (str): ruta del archivo.
+    - options (dict): Diccionario con las opciones de lectura
+    - large_file (bool): Indica si el archivo es grande 
+
+    Returns:
+    - pd.DataFrame: Un DataFrame con los datos leídos
+    """
+
+    print(f"Leyendo archivo: {file_path}")
+    if large_file:
+        df= read_large_file(format, file_path, options)
+
+    else:
+        if format == 'csv':
+            if options:
+                df = pd.read_csv(file_path, **options)
+            else:
+                df = pd.read_csv(file_path)
+        elif format == 'txt':
+            if options:
+                df = pd.read_csv(file_path, **options)
+            else:
+                df = pd.read_csv(file_path)
+        elif format in ['xls', 'xlsx']:
+            if options:
+                df = pd.read_excel(file_path, **options)
+            else:
+                df = pd.read_excel(file_path)
+        else:
+            raise ValueError(f"Formato no soportado: {format}")
+    
+    return df
+
+def read_large_file(format: str, file_path: str, options: dict) -> pd.DataFrame:
+    """
+    Lee archivos grandes en chunks y los concatena
 
     Parameters:
     - format (str): formato del archivo.
@@ -14,31 +53,20 @@ def read_raw_data(format: str, file_path: str, options: dict) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: Un DataFrame con los datos leídos
     """
+    chunksize = 10_000 
 
-    print(f"Leyendo archivo: {file_path}")
-
-    if format == 'csv':
-        if options:
-            df = pd.read_csv(file_path, **options)
-        else:
-            df = pd.read_csv(file_path)
+    if format == 'csv':        
+        chunks = pd.read_csv(file_path, chunksize=chunksize, **(options or {}), on_bad_lines='skip')
+        return pd.concat(chunk for chunk in chunks)
     elif format == 'txt':
-        if options:
-            df = pd.read_csv(file_path, **options)
-        else:
-            df = pd.read_csv(file_path)
-    elif format in ['xls', 'xlsx']:
-        if options:
-            df = pd.read_excel(file_path, **options)
-        else:
-            df = pd.read_excel(file_path)
+        chunks = pd.read_csv(file_path, chunksize=chunksize, **(options or {}), on_bad_lines='skip')
+        return pd.concat(chunk for chunk in chunks)
     else:
-        raise ValueError(f"Formato no soportado: {format}")
-    
-    return df
+        raise ValueError("Formato no soportado")
+
 
 def read_multi_file_paths(format: str, name: str) -> list:
-    ruta_entrada = f'../.gitignore/raw_datasets/*{name}*.{format}'
+    ruta_entrada = f'../datasets/raw_datasets/*{name}*.{format}'
 
     matching_files = glob.glob(ruta_entrada)
 
@@ -116,7 +144,7 @@ def process_australia(df: pd.DataFrame) -> pd.DataFrame:
                 if not h.endswith("_Tri")
             ])
     
-    # Paso 2: Se crea un diccionario de DataFrames por hospital
+    # Se crea un diccionario de DataFrames por hospital
     dfs_por_hospital = {}
 
     for hospital in hospitales:
@@ -313,11 +341,12 @@ def process_esp_canarias(df: pd.DataFrame) -> pd.DataFrame:
         'fecha': 'date',
         'valor': 'admissions'
     })
-    df_ordenado = df_agrupado[['date', 'admissions', 'hospital']]
+    df_ordenado = df_agrupado[['date', 'admissions', 'hospital']].copy()
+
 
     df_ordenado['date'] = pd.to_datetime(df_ordenado['date'], dayfirst=True, errors='coerce')
-    df_ordenado['date'] = df_ordenado['date'].dt.strftime('%Y-%m-%d')                          
-
+    df_ordenado['date'] = df_ordenado['date'].dt.strftime('%Y-%m-%d')
+                        
     return df_ordenado
 
 def process_esp_castilla_y_leon(df: pd.DataFrame) -> pd.DataFrame:
@@ -335,7 +364,7 @@ def process_esp_castilla_y_leon(df: pd.DataFrame) -> pd.DataFrame:
         'Fecha de atención': 'date',
         'Hospital': 'hospital'
     })
-    df_ordenado = df_agrupado[['date', 'admissions', 'hospital']].copy()
+    df_ordenado = df_agrupado[['date', 'admissions', 'hospital']].copy() 
   
     #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de españa
     target_path = f'../datasets/clean_datasets/spain_data.parquet'
@@ -434,12 +463,12 @@ def process_mexico_2009(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df_filtrado = df.iloc[:, [1, 15, 18, 19]]
+    df_filtrado = df.iloc[:, [1, 15, 18, 19]].copy()
     df_filtrado.columns = ["hospital", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
 
     df_filtrado= mexico_convert_date_hour_minute(df_filtrado)
-    df_agrupado = df_filtrado.groupby(['hospital', 'date']).size().reset_index(name='admissions')
-    df_ordenado = df_agrupado[['date', 'admissions', 'hospital']]
+    df_agrupado = df_filtrado.groupby(['hospital', 'datetime']).size().reset_index(name='admissions')
+    df_ordenado = df_agrupado[['datetime', 'admissions', 'hospital']]
 
     return df_ordenado
 
@@ -452,7 +481,7 @@ def process_mexico_2010(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df_filtrado = df.iloc[:, [1, 18, 21, 22]]
+    df_filtrado = df.iloc[:, [1, 18, 21, 22]].copy()
     df_filtrado.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
 
     df_filtrado= mexico_convert_date_hour_minute(df_filtrado)
@@ -469,7 +498,7 @@ def process_mexico_2011(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df_filtrado = df.iloc[:, [1, 18, 21, 22]]
+    df_filtrado = df.iloc[:, [1, 18, 21, 22]].copy()
     df_filtrado.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
 
     df_filtrado= mexico_convert_date_hour_minute(df_filtrado)
@@ -486,7 +515,7 @@ def process_mexico_2012(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df_filtrado = df.iloc[:, [1, 19, 22, 23]]
+    df_filtrado = df.iloc[:, [1, 19, 22, 23]].copy()
     df_filtrado.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
 
     df_filtrado= mexico_convert_date_hour_minute(df_filtrado)
@@ -503,7 +532,7 @@ def process_mexico_2013(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df_filtrado = df.iloc[:, [1, 19, 22, 23]]
+    df_filtrado = df.iloc[:, [1, 19, 22, 23]].copy()
     df_filtrado.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
     
     df_filtrado= mexico_convert_date_hour_minute(df_filtrado)
@@ -529,9 +558,10 @@ def process_mexico_2014(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
     - pd.DataFrame: DataFrame procesado
     """
-    df.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
+    df_filtrado = df.iloc[:, [1, 19, 22, 23]].copy()
+    df_filtrado.columns = ["CLUES", "FECHAINGRESO", "HORA_INGRESO", "MINUTO_INGRESO"]
 
-    df= mexico_convert_date_hour_minute(df)
+    df= mexico_convert_date_hour_minute(df_filtrado)
     df_final= generic_mexico_append(df)
 
     return df_final
@@ -686,7 +716,7 @@ def generic_mexico_append(df: pd.DataFrame) -> pd.DataFrame:
     df_agrupado = df_filtrado.groupby(['hospital', 'datetime']).size().reset_index(name='admissions')
     df_ordenado = df_agrupado[['datetime', 'admissions', 'hospital']]
   
-    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de españa
+    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de mexico
     target_path = f'../datasets/clean_datasets/mexico_data.parquet'
     df_target = pd.read_parquet(target_path)
     
@@ -695,6 +725,7 @@ def generic_mexico_append(df: pd.DataFrame) -> pd.DataFrame:
     return df_final
 
 def mexico_convert_date_hour_minute(df):
+    df= df.copy()
     df["FECHAINGRESO"] = pd.to_datetime(df["FECHAINGRESO"], errors="coerce")
     df["HORA_INGRESO"] = pd.to_numeric(df["HORA_INGRESO"], errors="coerce").clip(upper=23).fillna(0).astype(int)
     df["MINUTO_INGRESO"] = pd.to_numeric(df["MINUTO_INGRESO"], errors="coerce").clip(upper=59).fillna(0).astype(int)
@@ -702,9 +733,10 @@ def mexico_convert_date_hour_minute(df):
     df["datetime"] = df["FECHAINGRESO"] + pd.to_timedelta(df["HORA_INGRESO"], unit='h') + pd.to_timedelta(df["MINUTO_INGRESO"], unit='m')
 
     return df
-def mexico_convert_date_hour(df):
-    df["FECHAINGRESO"] = pd.to_datetime(df["FECHAINGRESO"], errors="coerce")
 
+def mexico_convert_date_hour(df):
+    df= df.copy()
+    df["FECHAINGRESO"] = pd.to_datetime(df["FECHAINGRESO"], errors="coerce")
     # Crea columna 'datetime' combinando la fecha y la hora
     df["datetime"] = pd.to_datetime(
     df["FECHAINGRESO"].dt.strftime("%Y-%m-%d") + " " + df["HORA_INGRESO"],
@@ -857,5 +889,11 @@ def process_wales(df: pd.DataFrame) -> pd.DataFrame:
             })
     df_ordenado = df_final[['date', 'admissions', 'hospital']]
 
-    return df_ordenado
+    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de gales
+    target_path = f'../datasets/clean_datasets/wales_data.parquet'
+    df_target = pd.read_parquet(target_path)
+    
+    df_final = pd.concat([df_target, df_ordenado], ignore_index=True).drop_duplicates()
+
+    return df_final
 
