@@ -780,13 +780,7 @@ def process_usa_(df: pd.DataFrame) -> pd.DataFrame:
             })
     df_ordenado = df_final[['date', 'admissions', 'hospital']]
 
-    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de usa
-    target_path = f'../datasets/clean_datasets/usa_data.parquet'
-    df_target = pd.read_parquet(target_path)
-    
-    df_final = pd.concat([df_target, df_ordenado], ignore_index=True).drop_duplicates()
-
-    return df_final
+    return df_ordenado
 
 def process_nl_(df: pd.DataFrame) -> pd.DataFrame:
     """
