@@ -166,6 +166,12 @@ def process_australia(df: pd.DataFrame) -> pd.DataFrame:
     columnas_deseadas = ['Date', 'Admissions', 'Hospital']
     df_filtrado = df_final[columnas_deseadas]
 
+    df_filtrado = df_filtrado.rename(columns={
+    'Date': 'date',
+    'Admissions': 'admissions',
+    'Hospital': 'hospital'
+    })
+
     print(f"DataFrame procesado con {len(df_filtrado)} filas y {len(df_filtrado.columns)} columnas.")
     return df_filtrado
 
@@ -216,8 +222,8 @@ def process_chile(df: pd.DataFrame) -> pd.DataFrame:
     })
     df_ordenado = df_agrupado[['date', 'admissions', 'hospital']]
 
-    print(f"DataFrame procesado con {len(df_agrupado)} filas y {len(df_agrupado.columns)} columnas.")
-    return df_agrupado
+    print(f"DataFrame procesado con {len(df_ordenado)} filas y {len(df_ordenado.columns)} columnas.")
+    return df_ordenado
 
 def process_colombia(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -269,13 +275,7 @@ def process_col_betania(df: pd.DataFrame) -> pd.DataFrame:
         'FechaAtencion': 'date'
     })
     df_ordenado = df_agrupado[['date', 'admissions', 'hospital']]
-
-    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de colombia
-    target_path = f'../datasets/clean_datasets/colombia_data.parquet'
-    df_target = pd.read_parquet(target_path)
     
-    df_final = pd.concat([df_target, df_ordenado], ignore_index=True).drop_duplicates()
-
     return df_ordenado
 
 def process_esp_canarias(df: pd.DataFrame) -> pd.DataFrame:
@@ -780,13 +780,7 @@ def process_usa_(df: pd.DataFrame) -> pd.DataFrame:
             })
     df_ordenado = df_final[['date', 'admissions', 'hospital']]
 
-    #Se lee el archivo del path destino y se hace el merge, debido a que existen dos fuentes de datos de usa
-    target_path = f'../datasets/clean_datasets/usa_data.parquet'
-    df_target = pd.read_parquet(target_path)
-    
-    df_final = pd.concat([df_target, df_ordenado], ignore_index=True).drop_duplicates()
-
-    return df_final
+    return df_ordenado
 
 def process_nl_(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -890,4 +884,6 @@ def process_wales(df: pd.DataFrame) -> pd.DataFrame:
     df_ordenado = df_final[['date', 'admissions', 'hospital']]
 
     return df_ordenado
+
+
 
