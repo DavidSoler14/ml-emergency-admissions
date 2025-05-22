@@ -186,7 +186,7 @@ def aggregate_data(df: pd.DataFrame) -> pd.DataFrame:
         group = group.sort_values(time_col)
         group['lag_7'] = group['admissions'].shift(7)
         group['lag_14'] = group['admissions'].shift(14)
-        
+
         # Rolling 7 días anteriores, excluyendo día actual (window=7, closed='left')
         group['rolling_7'] = group['admissions'].shift(1).rolling(window=7).mean()
         group['rolling_14'] = group['admissions'].shift(1).rolling(window=14).mean()
@@ -194,7 +194,6 @@ def aggregate_data(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.groupby('hospital').apply(add_lags).reset_index(drop=True)
 
-    # Ordenar final
     df = df.sort_values(['hospital', time_col]).reset_index(drop=True)
 
     print(f"Se han llevado a cabo las agregaciones")
