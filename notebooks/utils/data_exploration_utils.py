@@ -27,7 +27,7 @@ def analyze_all_hospitals(df, period=7, z_thresh=3, plot=True):
         dict con resultados por hospital.
     """
 
-    # Verificar columnas disponibles
+    # Verifica columnas disponibles
     datetime_col = None
     if 'datetime' in df.columns:
         datetime_col = 'datetime'
@@ -70,7 +70,7 @@ def analyze_all_hospitals(df, period=7, z_thresh=3, plot=True):
         seasonal = result.seasonal
         resid = result.resid
 
-        # Mostrar resumen estadístico de componentes
+        # Muestra resumen estadístico de componentes
         summarize_series(trend.dropna(), "Tendencia")
         summarize_series(seasonal.dropna(), "Estacionalidad")
         summarize_series(resid.dropna(), "Ruido (Residuo)")
